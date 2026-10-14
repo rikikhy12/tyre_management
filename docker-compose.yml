@@ -1,0 +1,125 @@
+services:
+  # ============================================================================
+  # 1. DATABASE SERVICE (PostgreSQL)
+  # ============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: cms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dev_cms
+      POSTGRES_USER: dev_cms
+      POSTGRES_PASSWORD: Cslg5NxEecL36eV4
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      # Port 25432 sesuai konfigurasi default be-hexagonal & cms-backend
+      - "25432:5432"
+      # Port 5432 standard postgres
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_cms -d dev_cms"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tyre-network
+
+  # ============================================================================
+  # 2. CMS BACKEND (Java Spring Boot)
+  # ============================================================================
+  cms-backend:
+    build: ./cms-backend
+    container_name: cms-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dev_cms
+      SPRING_DATASOURCE_USERNAME: dev_cms
+      SPRING_DATASOURCE_PASSWORD: Cslg5NxEecL36eV4
+      SPRING_PROFILES_ACTIVE: development
+      SERVER_PORT: 8081
+      SPRING_URL_PREFIX: /cms
+      JWT_SECRET: c2luYXJtYXMtY21zLXJhaGFzaWEtYmFuZ2V0LWphbmdhbi1kaWNvYmEtY2FyaS1jYXJp
+      SPRING_UPLOAD_PATH: /cms-uploads
+      LOG_PATH: /cms-logs
+      SPRING_DEFAULT_HOST: https://dev-cms.ugems.id/
+      ISAFE_HOST: https://devgcpesb.borneo-indobara.com/
+      ISAFE_AUTH: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzX25hbWUiOiJjbXMiLCJpYXQiOjE2OTg5MTk2MjZ9.fw3cN6Gzi2DLIWKTnfTG4YHb2wJ1V4l9qhQAiQ-r8TA
+      SPRING_DATA_REDIS_HOST: 10.12.52.3
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: "12345"
+      SPRING_FLYWAY_ENABLED: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "none"
+    volumes:
+      - cms_uploads:/cms-uploads
+      - cms_logs:/cms-logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tyre-network
+
+  # ============================================================================
+  # 3. BE HEXAGONAL (NestJS - Management Tyre)
+  # ============================================================================
+  be-hexagonal:
+    build: ./be-hexagonal
+    container_name: be-hexagonal
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      cms-backend:
+        condition: service_started
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: 8082
+      NODE_ENV: production
+      DATABASE_URL: postgresql://dev_cms:Cslg5NxEecL36eV4@postgres:5432/dev_cms
+      JWT_AUTH_SECRET: c2luYXJtYXMtY21zLXJhaGFzaWEtYmFuZ2V0LWphbmdhbi1kaWNvYmEtY2FyaS1jYXJp
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tyre-network
+
+  # ============================================================================
+  # 4. CMS FRONTEND (Vue.js Application)
+  # ============================================================================
+  cms-frontend:
+    build: ./cms-frontend
+    container_name: cms-frontend
+    restart: unless-stopped
+    depends_on:
+      - cms-backend
+      - be-hexagonal
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      VUE_APP_BACKEND_DEV: http://localhost:8081/
+      VUE_APP_MODE: dev
+      NODE_ENV: development
+    networks:
+      - tyre-network
+
+# ==============================================================================
+# VOLUMES & NETWORKS
+# ==============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  cms_uploads:
+    driver: local
+  cms_logs:
+    driver: local
+
+networks:
+  tyre-network:
+    driver: bridge

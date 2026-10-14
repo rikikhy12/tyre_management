@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build artifacts
+dist/
+**/dist/
+target/
+**/target/
+build/
+**/build/
+
+# Environment and private files
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.*
+
+# Logs
+*.log
+**/logs/
+**/cms-logs/
+npm-debug.log*
+yarn-debug.log*
+
+# IDE & OS
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Temporary & upload folders
+**/cms-uploads/
+
+# Database dumps
+*.sql

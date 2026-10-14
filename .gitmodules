@@ -1,0 +1,9 @@
+[submodule "be-hexagonal"]
+	path = be-hexagonal
+	url = https://gitlab.ugems.id/cms-sinisaja/be-hexagonal.git
+[submodule "cms-backend"]
+	path = cms-backend
+	url = https://gitlab.ugems.id/hendraw.coc/cms-backend.git
+[submodule "cms-frontend"]
+	path = cms-frontend
+	url = https://gitlab.ugems.id/hendraw.coc/cms-frontend.git
